@@ -8,6 +8,8 @@ package cmd
 import (
 	"context"
 	"io"
+	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -23,6 +25,7 @@ var (
 
 	// TODO: Add examples
 	updateExample = i18n.T(``)
+	create        = false
 )
 
 // NewCmdUpdate updates command responsible for secret updates.
@@ -37,7 +40,7 @@ func NewCmdUpdate(out io.Writer, errOut io.Writer) *cobra.Command {
 				runHelp(cmd, args)
 				return
 			}
-
+			create, _ = cmd.Flags().GetBool("create")
 			fnClient := functionManagerClient()
 			imgClient := imageManagerClient()
 			eventClient := eventManagerClient()
@@ -67,6 +70,7 @@ func NewCmdUpdate(out io.Writer, errOut io.Writer) *cobra.Command {
 
 	cmd.Flags().StringVarP(&file, "file", "f", "", "Path to YAML file")
 	cmd.Flags().StringVarP(&workDir, "work-dir", "w", "", "Working directory relative paths are based on")
+	cmd.Flags().BoolP("create", "i", false, "create if not exist")
 
 	return cmd
 }
@@ -78,7 +82,15 @@ func CallUpdateAPI(c client.APIsClient) ModelAction {
 
 		_, err := c.UpdateAPI(context.TODO(), "", apiBody)
 		if err != nil {
-			return err
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreateAPI(context.TODO(), "", apiBody)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+
 		}
 
 		return nil
@@ -96,7 +108,23 @@ func CallUpdateApplication(input interface{}) error {
 	params.XDispatchOrg = getOrgFromConfig()
 	_, err := client.Application.UpdateApp(params, GetAuthInfoWriter())
 	if err != nil {
-		return err
+		if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+			body := input.(*v1.Application)
+			params := &application.AddAppParams{
+				Body:         body,
+				Context:      context.Background(),
+				XDispatchOrg: getOrgFromConfig(),
+			}
+			created, err := client.Application.AddApp(params, GetAuthInfoWriter())
+			if err != nil {
+				return err
+			}
+			*body = *created.Payload
+			return nil
+		} else {
+			return err
+		}
+
 	}
 
 	return err
@@ -108,7 +136,15 @@ func CallUpdateBaseImage(c client.ImagesClient) ModelAction {
 		baseImage := input.(*v1.BaseImage)
 		_, err := c.UpdateBaseImage(context.TODO(), "", baseImage)
 		if err != nil {
-			return err
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreateBaseImage(context.TODO(), dispatchConfig.Organization, baseImage)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+
 		}
 
 		return nil
@@ -122,7 +158,14 @@ func CallUpdateDriver(c client.EventsClient) ModelAction {
 
 		_, err := c.UpdateEventDriver(context.TODO(), "", eventDriver)
 		if err != nil {
-			return err
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreateEventDriver(context.TODO(), "", eventDriver)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 
 		return nil
@@ -136,7 +179,15 @@ func CallUpdateDriverType(c client.EventsClient) ModelAction {
 
 		_, err := c.UpdateEventDriverType(context.TODO(), "", driverType)
 		if err != nil {
-			return err
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreateEventDriverType(context.TODO(), "", driverType)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+
 		}
 
 		return nil
@@ -150,7 +201,15 @@ func CallUpdateImage(c client.ImagesClient) ModelAction {
 		_, err := c.UpdateImage(context.TODO(), "", img)
 
 		if err != nil {
-			return err
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err = c.CreateImage(context.TODO(), dispatchConfig.Organization, img)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+
 		}
 
 		return nil
@@ -165,7 +224,14 @@ func CallUpdatePolicy(c client.IdentityClient) ModelAction {
 
 		_, err := c.UpdatePolicy(context.TODO(), "", policyModel)
 		if err != nil {
-			return nil
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreatePolicy(context.TODO(), "", policyModel)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 
 		return nil
@@ -180,7 +246,14 @@ func CallUpdateServiceAccount(c client.IdentityClient) ModelAction {
 
 		_, err := c.UpdateServiceAccount(context.TODO(), "", serviceaccountModel)
 		if err != nil {
-			return err
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreateServiceAccount(context.TODO(), "", serviceaccountModel)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 		return nil
 	}
@@ -194,7 +267,14 @@ func CallUpdateOrganization(c client.IdentityClient) ModelAction {
 
 		_, err := c.UpdateOrganization(context.TODO(), "", orgModel)
 		if err != nil {
-			return err
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreateOrganization(context.TODO(), "", orgModel)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 		return nil
 	}
@@ -208,9 +288,16 @@ func CallUpdateSecret(c client.SecretsClient) ModelAction {
 		_, err := c.UpdateSecret(context.TODO(), "", secretModel)
 
 		if err != nil {
-			return err
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreateSecret(context.TODO(), dispatchConfig.Organization, secretModel)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
-		return err
+		return nil
 	}
 }
 
@@ -221,9 +308,16 @@ func CallUpdateSubscription(c client.EventsClient) ModelAction {
 
 		_, err := c.UpdateSubscription(context.TODO(), "", subscription)
 		if err != nil {
-			return err
-		}
+			if create && strings.HasPrefix(fmt.Sprint(err), "[Code: 404] ") {
+				_, err := c.CreateSubscription(context.TODO(), "", subscription)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 
+		}
 		return nil
 	}
 }
