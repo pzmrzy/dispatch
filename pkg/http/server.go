@@ -192,7 +192,7 @@ func (s *Server) Serve() (err error) {
 		if s.LetsEncryptDomain != "" {
 			certManager := autocert.Manager{
 				Prompt:     autocert.AcceptTOS,
-				HostPolicy: autocert.HostWhitelist("example.com"), //Your domain here
+				HostPolicy: autocert.HostWhitelist(s.LetsEncryptDomain), //Your domain here
 				Cache:      autocert.DirCache("certs"),                   //Folder for storing certificates
 			}
 			httpsServer.TLSConfig = &tls.Config{
