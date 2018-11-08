@@ -37,6 +37,7 @@ const (
 	defaultReadTimeout    = time.Second * 30
 	defaultWriteTimeout   = time.Second * 60
 	defaultHost           = "127.0.0.1"
+	certDirectory         = "lets_encrypt"
 )
 
 var defaultSchemes []string
@@ -192,12 +193,10 @@ func (s *Server) Serve() (err error) {
 		if s.LetsEncryptDomain != "" {
 			certManager := autocert.Manager{
 				Prompt:     autocert.AcceptTOS,
-				HostPolicy: autocert.HostWhitelist(s.LetsEncryptDomain), //Your domain here
-				Cache:      autocert.DirCache("certs"),                   //Folder for storing certificates
+				HostPolicy: autocert.HostWhitelist(s.LetsEncryptDomain),
+				Cache:      autocert.DirCache(certDirectory),
 			}
-			httpsServer.TLSConfig = &tls.Config{
-				GetCertificate: certManager.GetCertificate,
-			}
+			httpsServer.TLSConfig = certManager.TLSConfig()
 		} else {
 			if s.TLSCertificateKey == "" && s.TLSCertificate == "" {
 				log.Warnf("HTTPS requested but key and cert paths are empty. using self-generated PKI")
