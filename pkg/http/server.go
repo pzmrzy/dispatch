@@ -21,8 +21,8 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/netutil"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/net/netutil"
 )
 
 const (

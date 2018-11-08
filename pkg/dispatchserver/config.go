@@ -90,7 +90,6 @@ func configGlobalFlags(flags *pflag.FlagSet) {
 	flags.Bool("enable-tls", false, "Enable TLS (HTTPS) listener.")
 	flags.String("lets-encrypt-domain", "", "Use Let's Encrypt certificate")
 
-
 	flags.String("tracer", "", "OpenTracing-compatible Tracer URL")
 	flags.Bool("debug", false, "Enable debugging logs")
 }
